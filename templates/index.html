@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova — Agente Empresarial</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .container { width: 100%; max-width: 700px; height: 90vh; background: white; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px 24px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 22px; font-weight: 600; }
+        .header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+        .header-right { font-size: 13px; opacity: 0.85; }
+        .auth-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 16px; }
+        .auth-screen h2 { font-size: 20px; color: #333; margin-bottom: 8px; }
+        .auth-screen input { width: 100%; padding: 12px 16px; border: 1.5px solid #e0e0e0; border-radius: 12px; font-size: 14px; outline: none; }
+        .auth-screen input:focus { border-color: #667eea; }
+        .btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; font-size: 14px; cursor: pointer; font-weight: 500; }
+        .error { color: #e53e3e; font-size: 13px; }
+        .messages { flex: 1; overflow-y: auto; padding: 24px; flex-direction: column; gap: 16px; display: none; }
+        .message { display: flex; gap: 10px; max-width: 85%; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .bubble { padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+        .message.bot .bubble { background: #f0f2f5; color: #1a1a1a; border-bottom-left-radius: 4px; }
+        .message.user .bubble { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-bottom-right-radius: 4px; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; background: #f0f2f5; }
+        .input-area { padding: 16px 24px; border-top: 1px solid #f0f2f5; gap: 12px; display: none; }
+        .input-area input { flex: 1; padding: 12px 16px; border: 1.5px solid #e0e0e0; border-radius: 24px; font-size: 14px; outline: none; }
+        .input-area input:focus { border-color: #667eea; }
+        .input-area button { padding: 12px 24px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 24px; font-size: 14px; cursor: pointer; font-weight: 500; }
+        .tabs { display: flex; gap: 8px; width: 100%; }
+        .tab { flex: 1; padding: 10px; border: 1.5px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; font-size: 14px; color: #666; }
+        .tab.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: transparent; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🤖 Nova</h1>
+                <p>Agente empresarial de gestión de clientes</p>
+            </div>
+            <div class="header-right" id="user-info"></div>
+        </div>
+
+        <div class="auth-screen" id="auth-screen">
+            <div class="tabs">
+                <button class="tab active" id="tab-login" onclick="mostrarTab('login')">Iniciar sesión</button>
+                <button class="tab" id="tab-registro" onclick="mostrarTab('registro')">Registrarse</button>
+            </div>
+            <input type="email" id="email" placeholder="Email" />
+            <input type="password" id="password" placeholder="Contraseña" />
+            <p class="error" id="auth-error"></p>
+            <button class="btn" onclick="autenticar()">Entrar</button>
+        </div>
+
+        <div class="messages" id="messages"></div>
+        <div class="input-area" id="input-area" style="display:none">
+            <input type="text" id="chat-input" placeholder="Escribí tu mensaje..." onkeypress="if(event.key==='Enter') enviar()" />
+            <button onclick="enviar()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        var sessionId = Math.random().toString(36).substr(2, 9);
+        var modoActual = 'login';
+
+        function mostrarTab(modo) {
+            modoActual = modo;
+            document.getElementById('tab-login').className = 'tab' + (modo === 'login' ? ' active' : '');
+            document.getElementById('tab-registro').className = 'tab' + (modo === 'registro' ? ' active' : '');
+        }
+
+        function autenticar() {
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value.trim();
+            var errorEl = document.getElementById('auth-error');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Por favor completá todos los campos';
+                return;
+            }
+
+            var url = modoActual === 'login' ? '/login' : '/registro';
+
+            fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: email, password: password, session_id: sessionId})
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    document.getElementById('auth-screen').style.display = 'none';
+                    document.getElementById('messages').style.display = 'flex';
+                    document.getElementById('input-area').style.display = 'flex';
+                    document.getElementById('user-info').textContent = email;
+                    agregarMensaje('Hola! Soy Nova, tu agente de gestion de clientes. En que puedo ayudarte?', 'bot');
+                } else {
+                    errorEl.textContent = data.mensaje;
+                }
+            })
+            .catch(function(e) {
+                errorEl.textContent = 'Error de conexion';
+            });
+        }
+
+        function enviar() {
+            var input = document.getElementById('chat-input');
+            var mensaje = input.value.trim();
+            if (!mensaje) return;
+
+            agregarMensaje(mensaje, 'user');
+            input.value = '';
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({session_id: sessionId, mensaje: mensaje})
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                agregarMensaje(data.respuesta, 'bot');
+            })
+            .catch(function() {
+                agregarMensaje('Error al conectar con Nova', 'bot');
+            });
+        }
+
+        function agregarMensaje(texto, tipo) {
+            var messages = document.getElementById('messages');
+            var div = document.createElement('div');
+            div.className = 'message ' + tipo;
+
+            var avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = tipo === 'bot' ? '🤖' : '👤';
+
+            var bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.innerHTML = texto.split('\n').join('<br>');
+
+            div.appendChild(avatar);
+            div.appendChild(bubble);
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+    </script>
+</body>
+</html>

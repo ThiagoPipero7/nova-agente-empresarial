@@ -30,10 +30,10 @@ def formatear_cliente(r):
         f"   {estado}\n"
     )
 
-def buscar_cliente(nombre):
+def buscar_cliente(nombre, user_id):
     try:
         response = requests.get(
-            f"{SUPABASE_URL}/rest/v1/clientes?nombre=ilike.%{nombre}%&select=*",
+            f"{SUPABASE_URL}/rest/v1/clientes?nombre=ilike.%{nombre}%&user_id=eq.{user_id}&select=*",
             headers=HEADERS
         )
         if response.status_code == 200:
@@ -45,17 +45,12 @@ def buscar_cliente(nombre):
     except Exception as e:
         return f"Error al buscar cliente: {str(e)}"
 
-def agregar_cliente(nombre, email, telefono, consulta):
+def agregar_cliente(nombre, email, telefono, consulta, user_id):
     try:
-        # Validación de email
         if "@" not in email or "." not in email.split("@")[-1]:
             return "❌ El email no es válido. Por favor ingresá un email correcto (ej: nombre@empresa.com)"
-
-        # Validación de teléfono
         if not telefono.isdigit() or len(telefono) < 8:
             return "❌ El teléfono no es válido. Debe tener al menos 8 dígitos numéricos"
-
-        # Validación de nombre
         if len(nombre.strip()) < 3:
             return "❌ El nombre debe tener al menos 3 caracteres"
 
@@ -67,7 +62,8 @@ def agregar_cliente(nombre, email, telefono, consulta):
                 "email": email,
                 "telefono": telefono,
                 "consulta": consulta,
-                "estado": "pendiente"
+                "estado": "pendiente",
+                "user_id": user_id
             }
         )
         if response.status_code in [200, 201]:
@@ -76,10 +72,10 @@ def agregar_cliente(nombre, email, telefono, consulta):
     except Exception as e:
         return f"Error al agregar cliente: {str(e)}"
 
-def listar_clientes():
+def listar_clientes(user_id):
     try:
         response = requests.get(
-            f"{SUPABASE_URL}/rest/v1/clientes?select=*",
+            f"{SUPABASE_URL}/rest/v1/clientes?user_id=eq.{user_id}&select=*",
             headers=HEADERS
         )
         if response.status_code == 200:
@@ -91,13 +87,13 @@ def listar_clientes():
     except Exception as e:
         return f"Error al listar clientes: {str(e)}"
 
-def actualizar_cliente(id, campo, valor):
+def actualizar_cliente(id, campo, valor, user_id):
     try:
         campos_permitidos = ["nombre", "email", "telefono", "consulta", "estado"]
         if campo not in campos_permitidos:
             return f"Campo no válido. Campos permitidos: {', '.join(campos_permitidos)}"
         response = requests.patch(
-            f"{SUPABASE_URL}/rest/v1/clientes?id=eq.{id}",
+            f"{SUPABASE_URL}/rest/v1/clientes?id=eq.{id}&user_id=eq.{user_id}",
             headers=HEADERS,
             json={campo: valor}
         )
@@ -107,10 +103,10 @@ def actualizar_cliente(id, campo, valor):
     except Exception as e:
         return f"Error al actualizar cliente: {str(e)}"
 
-def eliminar_cliente(id):
+def eliminar_cliente(id, user_id):
     try:
         response = requests.delete(
-            f"{SUPABASE_URL}/rest/v1/clientes?id=eq.{id}",
+            f"{SUPABASE_URL}/rest/v1/clientes?id=eq.{id}&user_id=eq.{user_id}",
             headers=HEADERS
         )
         if response.status_code in [200, 204]:
@@ -119,13 +115,13 @@ def eliminar_cliente(id):
     except Exception as e:
         return f"Error al eliminar cliente: {str(e)}"
 
-def listar_por_estado(estado):
+def listar_por_estado(estado, user_id):
     try:
         estados_validos = ["pendiente", "activo", "resuelto"]
         if estado not in estados_validos:
             return f"Estado no válido. Estados permitidos: {', '.join(estados_validos)}"
         response = requests.get(
-            f"{SUPABASE_URL}/rest/v1/clientes?estado=eq.{estado}&select=*",
+            f"{SUPABASE_URL}/rest/v1/clientes?estado=eq.{estado}&user_id=eq.{user_id}&select=*",
             headers=HEADERS
         )
         if response.status_code == 200:
