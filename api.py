@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -112,6 +113,26 @@ async def chat(data: Mensaje):
 
     except Exception as e:
         return {"respuesta": f"Error: {str(e)}"}
+    
+@app.get("/estadisticas")
+async def estadisticas(session_id: str):
+    from herramientas.clientes import SUPABASE_URL, SUPABASE_KEY, HEADERS
+    import requests as req
+
+    user_id = usuarios_logueados.get(session_id)
+    if not user_id:
+        return {"error": "No autenticado"}
+
+    pendientes = len(req.get(f"{SUPABASE_URL}/rest/v1/clientes?user_id=eq.{user_id}&estado=eq.pendiente&select=id", headers=HEADERS).json())
+    activos = len(req.get(f"{SUPABASE_URL}/rest/v1/clientes?user_id=eq.{user_id}&estado=eq.activo&select=id", headers=HEADERS).json())
+    resueltos = len(req.get(f"{SUPABASE_URL}/rest/v1/clientes?user_id=eq.{user_id}&estado=eq.resuelto&select=id", headers=HEADERS).json())
+
+    return {
+        "pendientes": pendientes,
+        "activos": activos,
+        "resueltos": resueltos,
+        "total": pendientes + activos + resueltos
+    }
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
